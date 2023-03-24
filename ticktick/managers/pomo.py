@@ -7,16 +7,20 @@ class PomoManager:
     POMO_BASE_URL2 = 'https://api.ticktick.com/api/v2/pomodoro'
     POMO_PREFERENCES_URL = 'https://api.ticktick.com/api/v2/user/preferences'
     # mobile platform might provide additional information
-    POMO_STATISTIC_URL = POMO_BASE_URL + "/statistics/generalForDesktop"
     POMO_BATCH_URL = "https://api.ticktick.com/api/v2/batch/pomodoro"
 
     def __init__(self, client_class):
         self._client = client_class
         self.access_token = ''
 
-    def statistics(self):
-        # https://api.ticktick.com/api/v2/statistics/general
-        pass
+    def get_today(self):
+        """
+        Returns:
+            dict containing the pomo statistics for today, times in minutes
+        """
+        return self._client.http_get(url=self.POMO_BASE_URL + "/statistics/generalForDesktop",
+                                     cookies=self._client.cookies,
+                                     headers=self._client.HEADERS)
 
     def add(self, tasks: list, start_time: datetime, pause_duration=0, end_time: datetime = datetime.now(), status=1,
             note=""):
