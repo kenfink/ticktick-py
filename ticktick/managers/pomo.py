@@ -8,6 +8,7 @@ class PomoManager:
     POMO_PREFERENCES_URL = 'https://api.ticktick.com/api/v2/user/preferences'
     # mobile platform might provide additional information
     POMO_BATCH_URL = "https://api.ticktick.com/api/v2/batch/pomodoro"
+    TIMER_URL = 'https://api.ticktick.com/api/v2/timer'
 
     def __init__(self, client_class):
         self._client = client_class
@@ -22,9 +23,19 @@ class PomoManager:
                                      cookies=self._client.cookies,
                                      headers=self._client.HEADERS)
 
-    def add(self, tasks: list, start_time: datetime, pause_duration=0, end_time: datetime = datetime.now(), status=1,
-            note=""):
-        generated_id = secrets.token_hex(24)
+    def add_record(self, tasks: list, start_time: datetime, pause_duration=0, end_time: datetime = datetime.now(),
+                   status=1,
+                   note=""):
+        """
+        Parameters:
+            tasks: list of tasks. Build with build_task_pomo_record
+            start_time: start of focus
+            end_time: end of focus
+            pause_duration: duration of pause in seconds
+            status: status
+            note: focus note
+        """
+        generated_id = secrets.token_hex(12)
         payload = {
             "add": [
                 {
@@ -46,8 +57,8 @@ class PomoManager:
                                       headers=self._client.HEADERS,
                                       json=payload)
 
-    def build_record(self, start_time: datetime, end_time: datetime, task_name=None, task_id=None,
-                     append_to: list = None):
+    def build_task_pomo_record(self, start_time: datetime, end_time: datetime, task_name=None, task_id=None,
+                               append_to: list = None):
         if task_name is None and task_id is None:
             raise AttributeError("Provide either task name or task id")
         if task_name is not None:
@@ -71,7 +82,7 @@ class PomoManager:
             return append_to
         return payload
 
-    def delete(self, record_id):
+    def delete_record(self, record_id):
         """
         Deletes the given record.
         Arguments:
@@ -80,6 +91,82 @@ class PomoManager:
         return self._client.http_delete(url=self.POMO_BASE_URL2 + "/" + record_id,
                                         cookies=self._client.cookies,
                                         headers=self._client.HEADERS)
+
+    def add_timer(self, icon='habit_daily_check_in', color='#97E38B', name='Timer', pomo_time=25, status=0,
+                  sort_order=-1099511627776, created_time=datetime.now(), modified_time=datetime.now()):
+        """
+        Adds a pomo timer
+
+        Arguments:
+            icon: icon of the timer
+            color: color of the timer
+            name: name of the timer
+            pomo_time: pomo time in minutes
+            status: status
+            sort_order: sort order
+            created_time: creation time
+            modified_time: modification time
+        """
+
+        payload = {
+            "add": [
+                {"id": secrets.token_hex(12),
+                 "icon": icon,
+                 "color": color,
+                 "name": name,
+                 "type": "pomodoro",
+                 "pomodoroTime": pomo_time,
+                 "status": status,
+                 "sortOrder": sort_order,
+                 "createdTime": created_time.isoformat() + "+0000",
+                 "modifiedTime": modified_time.isoformat() + "+0000"}],
+            "update": [],
+            "delete": []
+        }
+
+        return self._client.http_post(url=self.TIMER_URL,
+                                      cookies=self._client.cookies,
+                                      headers=self._client.HEADERS,
+                                      json=payload)
+
+    def delete_timer(self, timer_id):
+        """
+        Deletes the given timer.
+
+        Arguments:
+            timer_id: The internal id of the timer
+        """
+
+        payload = {
+            "add": [],
+            "update": [],
+            "delete": [timer_id]
+        }
+
+        return self._client.http_post(url=self.TIMER_URL,
+                                      cookies=self._client.cookies,
+                                      headers=self._client.HEADERS,
+                                      json=payload)
+
+    def get_timers(self):
+        """
+        Returns:
+            List of timers
+        """
+        return self._client.http_get(url=self.TIMER_URL,
+                                     cookies=self._client.cookies,
+                                     headers=self._client.HEADERS)
+
+    def get_timer_id_by_name(self, name):
+        """
+        Returns:
+            The id of the timer with the given name
+        """
+        timers = self.get_timers()
+        for timer in timers:
+            if timer['name'] == name:
+                return timer['id']
+        raise AttributeError("No timer with name " + name + " found")
 
     def get_timeline(self):
         """
@@ -119,7 +206,7 @@ class PomoManager:
     def get_preferences(self):
         """
         Returns:
-            dict:
+            dict
             {
                 "id": internal id,
               "shortBreakDuration": Duration of short breaks in minutes,
