@@ -5,6 +5,7 @@ from ticktick.managers.projects import ProjectManager
 from ticktick.managers.settings import SettingsManager
 from ticktick.managers.tags import TagsManager
 from ticktick.managers.tasks import TaskManager
+from ticktick.managers.timers import TimerManager
 from ticktick.oauth2 import OAuth2
 
 
@@ -44,8 +45,6 @@ class TickTickClient:
         self.oauth_manager = oauth
         self._session = self.oauth_manager.session
 
-        self._prepare_session(username, password)
-
         # Mangers for the different operations
         self.focus = FocusTimeManager(self)
         self.habit = HabitManager(self)
@@ -54,6 +53,9 @@ class TickTickClient:
         self.settings = SettingsManager(self)
         self.tag = TagsManager(self)
         self.task = TaskManager(self)
+        self.timer = TimerManager(self)
+
+        self._prepare_session(username, password)
 
     def _prepare_session(self, username, password):
         """
@@ -159,6 +161,8 @@ class TickTickClient:
         self.state['tasks'] = response['syncTaskBean']['update']
         # Set tags
         self.state['tags'] = response['tags']
+        # Set timers
+        self.state['timers'] = self.timer.get_all_timers()
 
         return response
 

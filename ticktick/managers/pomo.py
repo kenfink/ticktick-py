@@ -23,14 +23,14 @@ class PomoManager:
                                      cookies=self._client.cookies,
                                      headers=self._client.HEADERS)
 
-    def add_record(self, tasks: list, start_time: datetime, pause_duration=0, end_time: datetime = datetime.now(),
+    def add_record(self, tasks: list, start_time: datetime, pause_duration=0, end_time: datetime = datetime.utcnow(),
                    status=1,
                    note=""):
         """
         Parameters:
             tasks: list of tasks. Build with build_task_pomo_record
-            start_time: start of focus
-            end_time: end of focus
+            start_time: start of focus. In UTC, so adjust accordingly!
+            end_time: end of focus. In UTC, so adjust accordingly!
             pause_duration: duration of pause in seconds
             status: status
             note: focus note
@@ -92,86 +92,9 @@ class PomoManager:
                                         cookies=self._client.cookies,
                                         headers=self._client.HEADERS)
 
-    def add_timer(self, icon='habit_daily_check_in', color='#97E38B', name='Timer', pomo_time=25, status=0,
-                  sort_order=-1099511627776, created_time=datetime.now(), modified_time=datetime.now()):
+    def get_timeline(self, start_time: datetime, end_time: datetime):
         """
-        Adds a pomo timer
-
-        Arguments:
-            icon: icon of the timer
-            color: color of the timer
-            name: name of the timer
-            pomo_time: pomo time in minutes
-            status: status
-            sort_order: sort order
-            created_time: creation time
-            modified_time: modification time
-        """
-
-        payload = {
-            "add": [
-                {"id": secrets.token_hex(12),
-                 "icon": icon,
-                 "color": color,
-                 "name": name,
-                 "type": "pomodoro",
-                 "pomodoroTime": pomo_time,
-                 "status": status,
-                 "sortOrder": sort_order,
-                 "createdTime": created_time.isoformat() + "+0000",
-                 "modifiedTime": modified_time.isoformat() + "+0000"}],
-            "update": [],
-            "delete": []
-        }
-
-        return self._client.http_post(url=self.TIMER_URL,
-                                      cookies=self._client.cookies,
-                                      headers=self._client.HEADERS,
-                                      json=payload)
-
-    def delete_timer(self, timer_id):
-        """
-        Deletes the given timer.
-
-        Arguments:
-            timer_id: The internal id of the timer
-        """
-
-        payload = {
-            "add": [],
-            "update": [],
-            "delete": [timer_id]
-        }
-
-        return self._client.http_post(url=self.TIMER_URL,
-                                      cookies=self._client.cookies,
-                                      headers=self._client.HEADERS,
-                                      json=payload)
-
-    def get_timers(self):
-        """
-        Returns:
-            List of timers
-        """
-        return self._client.http_get(url=self.TIMER_URL,
-                                     cookies=self._client.cookies,
-                                     headers=self._client.HEADERS)
-
-    def get_timer_id_by_name(self, name):
-        """
-        Returns:
-            The id of the timer with the given name
-        """
-        timers = self.get_timers()
-        for timer in timers:
-            if timer['name'] == name:
-                return timer['id']
-        raise AttributeError("No timer with name " + name + " found")
-
-    def get_timeline(self):
-        """
-        Records of all pomo AND focus sessions.
-        !!! This implementation seems to be limited to the record of the last 10 days.
+        Records of all pomo, focus and timer sessions in the given time frame.
         Returns:
             Record entries: [
             {id:record-id,
@@ -195,10 +118,11 @@ class PomoManager:
 
             ...]
         """
-        # TODO add functionality to view complete record.
-        # https://api.ticktick.com/api/v2/pomodoros/timeline?to=MILLIS seems to return the 10 days prior to the stamp
 
-        response = self._client.http_get(url=self.POMO_BASE_URL + "/timeline",
+        url = self.POMO_BASE_URL + "/timing?from=%.0f&to=%.0f" % (
+            int(start_time.timestamp() * 1000), int(end_time.timestamp() * 1000))
+
+        response = self._client.http_get(url=url,
                                          cookies=self._client.cookies,
                                          headers=self._client.HEADERS)
         return response

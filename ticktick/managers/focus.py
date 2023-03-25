@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+
 from ticktick.helpers import time_methods
 
 
@@ -12,7 +13,7 @@ class FocusTimeManager:
     #   ---------------------------------------------------------------------------------------------------------------
     #   Focus Timer Methods
 
-    def focused_hour_average_statistic(self, start_date=datetime.now() - timedelta(days=30), end_date=datetime.now):
+    def focused_hour_average_statistic(self, start_date=datetime.utcnow() - timedelta(days=30), end_date=datetime.now):
         """
         Returns:
             dict mapping time-of-day-hour to focused minutes average in the given timeframe
@@ -24,7 +25,7 @@ class FocusTimeManager:
             cookies=self._client.cookies,
             headers=self._client.HEADERS)
 
-    def focused_hour_statistic(self, start_date=datetime.now() - timedelta(days=7), end_date=datetime.now()):
+    def focused_hour_statistic(self, start_date=datetime.utcnow() - timedelta(days=7), end_date=datetime.utcnow()):
         """
         Returns:
             daily focus times
@@ -52,7 +53,7 @@ class FocusTimeManager:
                                      cookies=self._client.cookies,
                                      headers=self._client.HEADERS)
 
-    def focused_time_statistic(self, start_date=datetime.now() - timedelta(days=1), end_date=datetime.now()):
+    def focused_time_statistic(self, start_date=datetime.utcnow() - timedelta(days=1), end_date=datetime.utcnow()):
         """
         Returns:
             Focused time in minutes categorized by project, tag and task.
