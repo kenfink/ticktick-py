@@ -1,5 +1,3 @@
-import secrets
-
 from ticktick.managers.focus import FocusTimeManager
 from ticktick.managers.habits import HabitManager
 from ticktick.managers.pomo import PomoManager
@@ -20,14 +18,20 @@ class TickTickClient:
     USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:95.0) Gecko/20100101 Firefox/95.0"
     X_DEVICE_ = '{"platform":"web","os":"OS X","device":"Firefox 95.0","name":"unofficial api!","version":4531,' \
                 '"id":"6490' + secrets.token_hex(10) + '","channel":"website","campaign":"","websocket":""}'
-
+    
     HEADERS = {'User-Agent': USER_AGENT,
                'x-device': X_DEVICE_}
 
+    OAuth_Mode = False
+
     def __init__(self, username: str, password: str, oauth: OAuth2) -> None:
         """
-        Initializes a client session. In order to interact with the API
-        a successful login must occur.
+        Initializes a client session. If username and password are provided, the client will log in to TickTick.
+        Otherwise, only the OAuth2/OpenAPI access will be initialized.
+
+        !!! THOROUGH WARNING: If you are using the OAuth2 method, only a handful of features are available!
+        These include creating tasks, completing tasks, and getting tasks. If you want access to everything else
+        (including the "state" dictionary), you must provide a username and password.
 
         Arguments:
             username: TickTick Username
@@ -49,7 +53,23 @@ class TickTickClient:
         self.oauth_manager = oauth
         self._session = self.oauth_manager.session
 
-        self._prepare_session(username, password)
+        if username is None or password is None or username == '' or password == '':
+            self.OAuth_Mode = True
+            self.project = ProjectManager(self)
+            self.tag = TagsManager(self)
+            self.task = TaskManager(self)
+            self.state = {'NOTICE': 'You are using the OpenAPI/OAuth2 method. Please provide a username and password to'
+                                    'access the state.'}
+        else:
+            self._prepare_session(username, password)
+
+    def _prepare_session(self, username, password):
+        """
+        Creates all the necessary calls to prepare the session
+        """
+        self._login(username, password)
+        self._settings()
+        self.sync()
 
         # Mangers for the different operations
         self.focus = FocusTimeManager(self)
@@ -59,14 +79,6 @@ class TickTickClient:
         self.settings = SettingsManager(self)
         self.tag = TagsManager(self)
         self.task = TaskManager(self)
-
-    def _prepare_session(self, username, password):
-        """
-        Creates all the necessary calls to prepare the session
-        """
-        self._login(username, password)
-        self._settings()
-        self.sync()
 
     def reset_local_state(self):
         """
@@ -152,6 +164,8 @@ class TickTickClient:
         Raises:
             RunTimeError: If the request could not be completed.
         """
+        if self.OAuth_Mode:
+            return
         response = self.http_get(self.INITIAL_BATCH_URL, cookies=self.cookies, headers=self.HEADERS)
 
         # Inbox Id
